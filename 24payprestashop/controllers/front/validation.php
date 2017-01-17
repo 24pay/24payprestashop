@@ -7,27 +7,41 @@ class TwentyFourPayValidationModuleFrontController extends ModuleFrontController
 	public function postProcess() {
 		$module = $this->module;
 		$cart = $this->context->cart;
-		
+
 		$customer = new Customer($cart->id_customer);
 		$currency = new Currency($cart->id_currency);
 
-		$this->module->validateOrder(
-			(int) $cart->id, 
-			Configuration::get('PS_OS_CHEQUE'),
-			(float) $cart->getOrderTotal(true, Cart::BOTH), 
-			$module->displayName, 
-			NULL, 
-			$mailVars, 
-			(int) $currency->id, 
+		if (!Validate::isLoadedObject($customer))
+			Tools::redirect('index.php?controller=order&step=1');
+
+		$total = (float) $cart->getOrderTotal(true, Cart::BOTH);
+
+		$module->validateOrder(
+			(int) $cart->id,
+			Configuration::get('TWENTYFOURPAY_PAYMENT_STATUS_PENDING'),
+			$total,
+			$module->displayName,
+			null,
+			null,
+			(int) $currency->id,
 			false,
 			$customer->secure_key
 			);
 
-		Tools::redirect('index.php?controller=order-confirmation&' .
-			'id_cart=' . ((int) $cart->id) . '&' .
-			'id_module=' . ((int) $module->id) . '&' .
-			'id_order=' . $module->currentOrder . '&' .
-			'key=' . $customer->secure_key
-			);
+		$this->redirectToGateChooser($module->currentOrder, $customer->secure_key);
+	}
+
+	private function redirectToGateChooser($orderId, $secureKey) {
+		Tools::redirect(
+			$this->context->link->getModuleLink(
+				'twentyfourpay',
+				'gateChooser',
+				[
+					'id_order' => $orderId,
+					'key' => $secureKey
+				],
+				true
+			)
+		);
 	}
 }

@@ -19,7 +19,7 @@
 </style>
 
 <div class="row">
-	<div class="col-xs-12 col-md-6">
+	<div class="col-xs-12">
         <p class="payment_module twentyfourpay">
             <a href="{$link->getModuleLink('twentyfourpay', 'validation', [], true)|escape:'html'}" title="{l s='Pay by 24pay gateways.' mod='twentyfourpay'}"><!-- payment -->
             	{l s='Pay by 24pay gateways' mod='twentyfourpay'} 

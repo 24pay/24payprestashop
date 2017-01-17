@@ -318,21 +318,26 @@ Muro */
 		$formFields = $this->generateRequestFormFields();
 		$html = "";
 
-		foreach ((array) $gateways as $gateway) {
-			if ($gateway == 3999){
-				$gateway = "";
-			$html .=
-				'<form id="twentyfourpay-gateway-' . $gateway . '" style="display: inline-block;" class="twentyfourpay-gateway twentyfourpay-gateway-' . $gateway . '" action="' . $this->twentyFourPayGateways->getGatewayUrl($gateway) . '" method="post">' .
-					$formFields .
-					'<input id="formButton" type="image" style="border:1px solid #323232;" .
-						src="' . $this->twentyFourPayGateways->getGatewayIcon("universal") . '" alt="' . $this->twentyFourPayGateways->getGatewayName($gateway) . '" ' .
-					'/>' .
-				'</form>';
-			}
-			else{
-			
+		foreach ( (array) $gateways as $gateway ) {
+			if ( $gateway == 3999 ) {
+				$html .=
+					'<form id="twentyfourpay-gateway" style="display: inline-block;" class="twentyfourpay-gateway twentyfourpay-gateway-' . $gateway . '" action="' . $this->twentyFourPayGateways->getGatewayUrl() . '" method="post">' .
+						$formFields .
+						'<input id="formButton" type="image" style="border:1px solid #323232;" src="' . $this->twentyFourPayGateways->getGatewayIcon( "universal" ) . '" />' .
+					'</form>';
+			} else {
+//				$html .=
+//					'<form id="twentyfourpay-gateway-' . $gateway . '" style="display: inline-block;" class="twentyfourpay-gateway twentyfourpay-gateway-' . $gateway . '" action="' . $this->twentyFourPayGateways->getGatewayUrl( $gateway ) . '" method="post">' .
+//						$formFields .
+//						'<input type="image" style="border:1px solid #323232;" src="' . $this->twentyFourPayGateways->getGatewayIcon( $gateway ) . '" alt="' . $this->twentyFourPayGateways->getGatewayName( $gateway ) . '" />' .
+//					'</form>';
 			}
 		}
+
+		$html .= '' .
+			'<script language="javascript">' .
+				'document.getElementById("formButton").click();' .
+			'</script>';
 
 		return '<div class="twentyfourpay-gateways">' . $html . '</div>';
 	}

@@ -5,7 +5,6 @@
  */
 class TwentyFourPayGateways {
 
-/* Muro
 	protected $installUrl = "https://admin.24-pay.eu/pay_gate/install";
 
 	protected $checkUrl = "https://admin.24-pay.eu/pay_gate/check";
@@ -13,17 +12,7 @@ class TwentyFourPayGateways {
 	protected $gatewayBaseUrl = "https://admin.24-pay.eu/pay_gate/paygt";
 
 	protected $mediaBaseUrl = "http://icons.24-pay.sk";
-Muro */
 
-	protected $installUrl;
-
-	protected $checkUrl;
-
-	protected $gatewayBaseUrl;
-
-	protected $mediaBaseUrl;
-
-	
 	protected $Mid;
 
 	protected $Key;
@@ -39,11 +28,8 @@ Muro */
 		"1005" => "CSOBPayBtn",
 		"1006" => "UniPlatba",
 		"1007" => "PlatbaOnlinePostovaBanka",
-		"1008" => "PlatbaOnlinePostovaBanka",
-		"1010" => "ZunoPay",
-		"1011" => "ZunoPayCZ",
-		"1012" => "RaiffeisenePlatby",
-		"1013" => "MojePlatba",
+		"1008" => "OTP Banka",
+		"1010" => "Z pay",
 		"2001" => "CSOBBankTransfer",
 		"2002" => "PrimaBankTransfer",
 		"2003" => "SLSPBankTransfer",
@@ -53,14 +39,13 @@ Muro */
 		"2007" => "OTPBankTransfer",
 		"2008" => "PostovaBankTransfer",
 		"2009" => "SberBankTransfer",
-		"2010" => "SberBankTransfer",
-		"2011" => "FioBankTransferCZ",
 		"3005" => "Testovacia brána",
 		"3006" => "PayPal",
-		"3007" => "PSC",
 		"3008" => "Viamo",
-		"3999" => "Universal"
-		);
+
+		"3998" => "Offline gate",
+		"3999" => "Universal gate",
+    );
 
 	protected $testGatewayId = "3005";
 
@@ -125,11 +110,15 @@ Muro */
 
 
 	public function getGatewayName($gatewayId) {
-		return $this->knownGateways[$gatewayId];
+		if (array_key_exists($gatewayId, $this->knownGateways)) {
+			return $this->knownGateways[$gatewayId];
+		} else {
+			return null;
+		}
 	}
 
 
-	public function getGatewayUrl($gatewayId) {
+	public function getGatewayUrl($gatewayId = null) {
 		return $this->gatewayBaseUrl . $gatewayId;
 	}
 

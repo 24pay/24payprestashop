@@ -1,9 +1,11 @@
-<?php 
+<?php
+if (!defined('_PS_VERSION_'))
+	exit;
 
-require __DIR__ . '/api/TwentyFourPayGateways.class.php';
-require __DIR__ . '/api/TwentyFourPayNotificationParser.class.php';
-require __DIR__ . '/api/TwentyFourPayRequestBuilder.class.php';
-require __DIR__ . "/api/country_code_converter.php";
+require __DIR__ . '/twentyfourpay/TwentyFourPayGateways.class.php';
+require __DIR__ . '/twentyfourpay/TwentyFourPayNotificationParser.class.php';
+require __DIR__ . '/twentyfourpay/TwentyFourPayRequestBuilder.class.php';
+require __DIR__ . "/twentyfourpay/country_code_converter.php";
 
 class twentyfourpay extends PaymentModule {
 	private $_html = '';
@@ -16,6 +18,7 @@ class twentyfourpay extends PaymentModule {
 		$this->tab = 'payments_gateways';
 		$this->version = '1.2'; //Muro
 		$this->author = '24pay s.r.o. LD';
+		$this->ps_versions_compliancy = array('min' => '1.6', 'max' => _PS_VERSION_);
 		$this->bootstrap = true;
 
 		parent::__construct();
@@ -44,8 +47,103 @@ class twentyfourpay extends PaymentModule {
 
 
 	public function install() {
-		if (!parent::install() || !$this->registerHook('payment') || !$this->registerHook('paymentReturn'))
+		if (!parent::install() ||
+			!$this->registerHook('payment')
+		) {
+			if ($this->l('ERROR_MESSAGE_INSTALL_MODULE') == "ERROR_MESSAGE_INSTALL_MODULE") {
+				$this->warning = "There was an Error installing the module.";
+			} else {
+				$this->warning = $this->l('ERROR_MESSAGE_INSTALL_MODULE');
+			}
+		}
+
+		if (is_null($this->warning) && !$this->addOrderStatuses()) {
+			if ($this->l('ERROR_MESSAGE_CREATE_ORDER_STATUS') == "ERROR_MESSAGE_CREATE_ORDER_STATUS") {
+				$this->warning = "There was an Error creating a custom order status.";
+			} else {
+				$this->warning = $this->l('ERROR_MESSAGE_CREATE_ORDER_STATUS');
+			}
+		}
+
+		return is_null($this->warning);
+	}
+
+	private function addOrderStatuses( ) {
+		try {
+			$stateConfig = [
+				'color' => 'blue',
+				'send_email' => false
+			];
+
+			$this->addOrderStatus(
+				'TWENTYFOURPAY_PAYMENT_STATUS_PENDING',
+				'Pending',
+				$stateConfig
+			);
+		} catch (Exception $exception) {
 			return false;
+		}
+
+		try {
+			$stateConfig = [
+				'color' => 'red',
+				'send_email' => true
+			];
+
+			$this->addOrderStatus(
+				'TWENTYFOURPAY_PAYMENT_STATUS_FAILED',
+				'Failed',
+				$stateConfig
+			);
+
+			return true;
+
+		} catch (Exception $exception) {
+			return false;
+		}
+	}
+
+
+    public function addOrderStatus( $configKey, $statusName, $stateConfig ) {
+		if ( ! Configuration::get( $configKey ) ) {
+			$orderState              = new OrderState();
+			$orderState->name        = array();
+			$orderState->module_name = $this->name;
+			$orderState->color       = $stateConfig['color'];
+			$orderState->hidden      = false;
+			$orderState->delivery    = false;
+			$orderState->logable     = true;
+			$orderState->invoice     = false;
+			$orderState->paid        = false;
+			$orderState->send_email  = $stateConfig['send_email'];
+
+			foreach ( Language::getLanguages() as $language ) {
+				$orderState->template[ $language['id_lang'] ] = 'payment';
+				$orderState->name[ $language['id_lang'] ]     = $statusName;
+			}
+
+			if ( $orderState->add() ) {
+				$twentyfourpayIcon = dirname( __FILE__ ) . '/logo.png';
+				$newStateIcon = dirname( __FILE__ ) . '/../../img/os/' . (int) $orderState->id . '.gif';
+
+                copy( $twentyfourpayIcon, $newStateIcon );
+			}
+
+			Configuration::updateValue( $configKey, (int) $orderState->id );
+		}
+	}
+
+
+	public function uninstall( ) {
+		if (!$this->unregisterHook('payment') ||
+			!parent::uninstall()
+		) {
+			return false;
+		}
+
+		Configuration::updateValue('TWENTYFOURPAY_MID', '');
+		Configuration::updateValue('TWENTYFOURPAY_KEY', '');
+		Configuration::updateValue('TWENTYFOURPAY_ESHOPID', '');
 
 		return true;
 	}
@@ -86,14 +184,6 @@ class twentyfourpay extends PaymentModule {
 
 
 	public function renderForm() {
-		$selection_import = array(
-			array(
-				'id' => 'states',
-				'val' => 'states',
-				'name' => $this->l('States')
-			),
-		);
-
 		$fields_form = array(
 			'form' => array(
 				'legend' => array(
@@ -267,87 +357,16 @@ Muro */
 
 
 	public function hookPayment($params) {
-		if (!$this->active)
+        if (!$this->active)
 			return;
 
 		$this->smarty->assign(array(
 			'this_path' => $this->_path,
-			'this_path_cheque' => $this->_path,
-			'this_path_ssl' => Tools::getShopDomainSsl(true, true).__PS_BASE_URI__.'modules/'.$this->name.'/'
+			'this_path_ssl' => Tools::getShopDomainSsl(true, true) . __PS_BASE_URI__ . 'modules/' . $this->name . '/'
 		));
 
 		return $this->display(__FILE__, 'payment.tpl');
 	}
-
-
-
-	public function hookPaymentReturn($params) {
-		if (!$this->active)
-			return;
-
-		$gateways = $this->getAvailableGateways();
-
-		if (!$gateways)
-			die($this->l('This payment method is not available.', 'validation'));
-
-		$order = $params["objOrder"];
-		$customer = new Customer($order->id_customer);
-		$address = new Address($order->id_address_invoice);
-		$country = new Country($address->id_country);
-		$language = new Language($order->id_lang);
-		$currency = new Currency($order->id_currency);
-
-		// if (!Validate::isLoadedObject($customer))
-		// 	Tools::redirect('index.php?controller=order&step=1');
-
-// print_r($order); die();
-
-		$twentyfourpay_request = $this->getTwentyFourPayRequestBuilder(array(
-			"RURL" => Tools::getHttpHost(true) . __PS_BASE_URI__ . 'module/twentyfourpay/result',
-			"NURL" => Tools::getHttpHost(true) . __PS_BASE_URI__ . 'module/twentyfourpay/notification',
-			"MsTxnId" => $this->encodeMsTxnId($order->id),
-			"Amount" => $params['total_to_pay'],
-			//"Amount" => $order->total_paid_real,
-			"CurrAlphaCode" => $currency->iso_code,
-			"LangCode" => strtoupper($language->iso_code),
-			"ClientId" => $customer->id,
-			"FirstName" => $customer->firstname,
-			"FamilyName" => $customer->lastname,
-			"Email" => $customer->email,
-			"Phone" => $address->phone ?: $address->phone_mobile,
-			"Street" => $address->address1 . ( $address->address2 ? ', ' . $address->address2 : ''),
-			"Zip" => $address->postcode,
-			"City" => $address->city,
-			"Country" => $this->convertCountryCodeToIsoA3($country->iso_code),
-			));
-
-		$htmlForms = $twentyfourpay_request->generateRequestForms($this->getAvailableGateways());
-
-		// $state = $params['objOrder']->getCurrentState();
-
-		// if ($state == Configuration::get('PS_OS_CHEQUE') || $state == Configuration::get('PS_OS_OUTOFSTOCK')) {
-		// 	$this->smarty->assign(array(
-		// 		'total_to_pay' => Tools::displayPrice($params['total_to_pay'], $params['currencyObj'], false),
-		// 		'chequeName' => $this->chequeName,
-		// 		'chequeAddress' => Tools::nl2br($this->address),
-		// 		'status' => 'ok',
-		// 		'id_order' => $params['objOrder']->id
-		// 	));
-		// 	if (isset($params['objOrder']->reference) && !empty($params['objOrder']->reference))
-		// 		$this->smarty->assign('reference', $params['objOrder']->reference);
-		// }
-		// else
-		// 	$this->smarty->assign('status', 'failed');
-		// return $this->display(__FILE__, 'payment_return.tpl');
-
-		$this->smarty->assign('htmlForms', $htmlForms);
-		
-		$this->smarty->assign('objId', $params["objOrder"]);
-		$this->smarty->assign('parametre', $params);
-
-		return $this->display(__FILE__, 'payment_return.tpl');
-	}
-
 
 
 	public function getConfig() {

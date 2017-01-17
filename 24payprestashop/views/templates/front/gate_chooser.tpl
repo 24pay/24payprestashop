@@ -34,7 +34,9 @@
 <div id="twentyfourpay">
 	<h1>{l s='Select your prefered payment gateway' mod='twentyfourpay'}</h1>
 	<p>{l s='Please, choose from the available 24pay gateways for making the payment transaction' mod='twentyfourpay'}</p>
+
 	{$htmlForms}
+
 	<script language="javascript">
         document.getElementById("formButton").click();
     </script>
