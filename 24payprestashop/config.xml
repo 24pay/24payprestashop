@@ -3,8 +3,8 @@
 	<name>twentyfourpay</name>
 	<displayName><![CDATA[24pay]]></displayName>
 	<version><![CDATA[1.2]]></version>
-	<description><![CDATA[24pay gateway payment solution.]]></description>
-	<author><![CDATA[24pay s.r.o.]]></author>
+	<description><![CDATA[Multiple gateways payment solution.]]></description>
+	<author><![CDATA[24pay s.r.o. LD]]></author>
 	<tab><![CDATA[payments_gateways]]></tab>
 	<is_configurable>1</is_configurable>
 	<need_instance>1</need_instance>

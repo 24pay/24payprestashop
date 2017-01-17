@@ -3,10 +3,13 @@
 class TwentyFourPayNotificationModuleFrontController extends ModuleFrontController {
 	
 	public function postProcess() {
-		if (!isset($_POST["params"]))
+		if (!$this->module->active)
+			return;
+
+		if (!isset($_REQUEST["params"]))
 			die("No notification received");
 
-		$xmlNotification = $_POST["params"];			
+		$xmlNotification = $_REQUEST["params"];
 
 		if (!($notification = $this->module->getTwentyFourPayNotificationParser($xmlNotification)))
 			die("Invalid notification");
@@ -28,7 +31,6 @@ class TwentyFourPayNotificationModuleFrontController extends ModuleFrontControll
 
 		} elseif ($notification->transactionIsPending()) {
 			// $history->changeIdOrderState(3, (int) $order->id); //order status=0
-
 		}
 
 		die("OK");
