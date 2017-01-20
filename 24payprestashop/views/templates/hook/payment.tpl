@@ -21,10 +21,21 @@
 <div class="row">
 	<div class="col-xs-12">
         <p class="payment_module twentyfourpay">
-            <a href="{$link->getModuleLink('twentyfourpay', 'validation', [], true)|escape:'html'}" title="{l s='Pay by 24pay gateways.' mod='twentyfourpay'}"><!-- payment -->
+            <a id="pay24-btn" href="{$link->getModuleLink('twentyfourpay', 'validation', [], true)|escape:'html'}" title="{l s='Pay by 24pay gateways.' mod='twentyfourpay'}"><!-- payment -->
             	{l s='Pay by 24pay gateways' mod='twentyfourpay'} 
-            	<span>{l s='(order processing will be longer)' mod='twentyfourpay'}</span>
             </a>
         </p>
     </div>
 </div>
+
+<script>
+	var clicked24 = false;
+	$(function(){
+		$('body').on('click',"#pay24-btn",function(event){
+			if (clicked24)
+				event.preventDefault();
+			else
+				clicked24 = true;
+		});
+	});
+</script>
