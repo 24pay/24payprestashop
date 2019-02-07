@@ -146,8 +146,9 @@ class TwentyFourPayGateways {
 		$iv = $this->Mid . strrev($this->Mid);
 
 		$key = pack('H*', $this->Key);
-
-		$crypted = mcrypt_encrypt(MCRYPT_RIJNDAEL_128, $key, $hash, MCRYPT_MODE_CBC, $iv);
+		
+		$crypted = openssl_encrypt( $hash, 'AES-256-CBC', $key, 1, $iv );
+		//$crypted = mcrypt_encrypt(MCRYPT_RIJNDAEL_128, $key, $hash, MCRYPT_MODE_CBC, $iv);
 		$sign = strtoupper(bin2hex(substr($crypted, 0, 16)));
 
 		return $sign;
